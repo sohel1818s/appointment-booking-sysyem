@@ -4,8 +4,7 @@ import pandas as pd
 from io import BytesIO
 from datetime import datetime, date
 
-# ---------------- DB CONFIG ----------------
-DB = {
+# DB configuration
     "host": "localhost",
     "user": "root",
     "password": "@dmin$12345678",
@@ -15,7 +14,7 @@ DB = {
 def get_connection():
     return mysql.connector.connect(**DB)
 
-# ---------------- DB HELPERS ----------------
+# DB helps
 def fetch(query, params=None):
     conn = get_connection()
     df = pd.read_sql(query, conn, params=params)
@@ -100,7 +99,7 @@ if not st.session_state.logged_in:
     login_page()
     st.stop()
 
-# ---------------- MAIN APP ----------------
+# Mian page
 st.set_page_config(page_title = "Clinic Appointment System",
                    page_icon = "🏥",
                    layout = "wide")
@@ -122,7 +121,7 @@ if choice == "Logout":
     st.session_state.logged_in = False
     st.rerun()
 
-# ---------------- DASHBOARD ----------------
+# Dashboard
 if choice == "Dashboard":
     st.header("📊 Dashboard")
     patients = fetch_patients()
@@ -161,7 +160,7 @@ if choice == "Add Doctor":
         insert_doctor(name, specialization)
         st.success("Doctor added!")
 
-# ---------------- BOOK APPOINTMENT ----------------
+# Book Appointment
 if choice == "Book Appointment":
     st.header("📅 Book Appointment")
 
@@ -182,12 +181,12 @@ if choice == "Book Appointment":
         insert_appointment(patient_id, doctor_id, date_, time_, note)
         st.success("Appointment booked!")
 
-# ---------------- VIEW ----------------
+# View details
 if choice == "View Appointments":
     st.header("📄 All Appointments")
     st.dataframe(fetch_appointments())
 
-# ---------------- EDIT / DELETE ----------------
+# Update and delete
 if choice == "Edit/Delete Records":
     st.header("✏ Edit & 🗑 Delete Records")
 
@@ -286,3 +285,4 @@ if choice == "Export to Excel":
         file_name="clinic_database.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
