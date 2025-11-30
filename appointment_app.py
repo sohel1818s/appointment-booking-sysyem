@@ -5,12 +5,13 @@ from io import BytesIO
 from datetime import datetime, date
 
 DB = {
-    "host": "containers-us-west-24.railway.app",
+    "host": "centerbeam.proxy.rlwy.net",
     "user": "root",
-    "password": "your_password",
+    "password": "bnZNoGWVUQSeILWFjYIETIHtoWMQroTo",
     "database": "railway",
-    "port": 12345  
+    "port": 27177
 }
+
 
 
 def get_connection():
@@ -287,6 +288,7 @@ if choice == "Export to Excel":
         file_name="clinic_database.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
 
 
 
