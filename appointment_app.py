@@ -4,7 +4,7 @@ import pandas as pd
 from io import BytesIO
 from datetime import datetime, date
 
-# DB configuration
+DB = {
     "host": "localhost",
     "user": "root",
     "password": "@dmin$12345678",
@@ -285,4 +285,5 @@ if choice == "Export to Excel":
         file_name="clinic_database.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
 
