@@ -5,11 +5,13 @@ from io import BytesIO
 from datetime import datetime, date
 
 DB = {
-    "host": "localhost",
+    "host": "containers-us-west-24.railway.app",
     "user": "root",
-    "password": "@dmin$12345678",
-    "database": "clinic_db"
+    "password": "your_password",
+    "database": "railway",
+    "port": 12345  
 }
+
 
 def get_connection():
     return mysql.connector.connect(**DB)
@@ -285,5 +287,6 @@ if choice == "Export to Excel":
         file_name="clinic_database.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
 
 
