@@ -4,20 +4,17 @@ import pandas as pd
 from io import BytesIO
 from datetime import datetime, date
 
+# Database connection
 DB = {
-    "host": "centerbeam.proxy.rlwy.net",
+    "host": "localhost",
     "user": "root",
-    "password": "bnZNoGWVUQSeILWFjYIETIHtoWMQroTo",
-    "database": "railway",
-    "port": 27177
+    "password": "@dmin$12345678",
+    "database": "clinic_db"
 }
-
-
 
 def get_connection():
     return mysql.connector.connect(**DB)
 
-# DB helps
 def fetch(query, params=None):
     conn = get_connection()
     df = pd.read_sql(query, conn, params=params)
@@ -31,40 +28,25 @@ def execute(query, params=None):
     conn.commit()
     conn.close()
 
-# Insert Functions
+# sql operations
 def insert_patient(name, age, gender, phone):
-    execute("INSERT INTO patients (name, age, gender, phone) VALUES (%s, %s, %s, %s)",
-            (name, age, gender, phone))
+    execute(
+        "INSERT INTO patients (name, age, gender, phone) VALUES (%s,%s,%s,%s)",
+        (name, age, gender, phone)
+    )
 
 def insert_doctor(name, specialization):
-    execute("INSERT INTO doctors (name, specialization) VALUES (%s, %s)",
-            (name, specialization))
+    execute(
+        "INSERT INTO doctors (name, specialization) VALUES (%s,%s)",
+        (name, specialization)
+    )
 
-def insert_appointment(patient_id, doctor_id, date_, time_, note):
-    execute("""
-        INSERT INTO appointments (patient_id, doctor_id, date, time, note)
-        VALUES (%s, %s, %s, %s, %s)
-    """, (patient_id, doctor_id, date_, time_, note))
+def insert_appointment(pid, did, d, t, note):
+    execute(
+        "INSERT INTO appointments (patient_id, doctor_id, date, time, note) VALUES (%s,%s,%s,%s,%s)",
+        (pid, did, d, t, note)
+    )
 
-# Update Functions
-def update_patient(id_, name, age, gender, phone):
-    execute("UPDATE patients SET name=%s, age=%s, gender=%s, phone=%s WHERE id=%s",
-            (name, age, gender, phone, id_))
-
-def update_doctor(id_, name, specialization):
-    execute("UPDATE doctors SET name=%s, specialization=%s WHERE id=%s",
-            (name, specialization, id_))
-
-def update_appointment(id_, patient_id, doctor_id, date_, time_, note):
-    execute("""
-        UPDATE appointments SET patient_id=%s, doctor_id=%s, date=%s, time=%s, note=%s WHERE id=%s
-    """, (patient_id, doctor_id, date_, time_, note, id_))
-
-# Delete Functions
-def delete_record(table, id_):
-    execute(f"DELETE FROM {table} WHERE id=%s", (id_,))
-
-# Fetch Tables
 def fetch_patients():
     return fetch("SELECT * FROM patients")
 
@@ -73,74 +55,127 @@ def fetch_doctors():
 
 def fetch_appointments():
     return fetch("""
-        SELECT a.id, p.name AS patient, d.name AS doctor, a.date, a.time, a.note
+        SELECT a.id, p.name patient, d.name doctor, a.date, a.time, a.note
         FROM appointments a
-        JOIN patients p ON p.id = a.patient_id
-        JOIN doctors d ON d.id = a.doctor_id
+        JOIN patients p ON p.id=a.patient_id
+        JOIN doctors d ON d.id=a.doctor_id
         ORDER BY a.date DESC, a.time DESC
     """)
 
-# ---------------- LOGIN SYSTEM ----------------
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-
-def login_page():
-    st.title("🔐 Admin Login")
-
-    username = st.text_input("Username",placeholder = "admin")
-    password = st.text_input("Password", type="password",value = "admin123")
-
-    if st.button("Login"):
-        if username == "admin" and password == "admin123":
-            st.session_state.logged_in = True
-            st.success("Login successful!")
-            st.rerun()
-        else:
-            st.error("Invalid username or password")
-
-if not st.session_state.logged_in:
-    login_page()
-    st.stop()
-
-# Mian page
-st.set_page_config(page_title = "Clinic Appointment System",
-                   page_icon = "🏥",
-                   layout = "wide")
+# page top configuration
+st.set_page_config("Clinic Appointment System", "🏥", layout="wide")
 st.title("🏥 Clinic Appointment System")
 
 menu = [
     "Dashboard",
-    "Add Patient", "Add Doctor", "Book Appointment",
+    "Add Patient",
+    "Add Doctor",
+    "Add Prescription",
+    "Book Appointment",
     "View Appointments",
-    "Edit/Delete Records",
-    "Export to Excel",
-    "Logout"
+    "Export to Excel"
 ]
-
 choice = st.sidebar.selectbox("Menu", menu)
 
-# Logout
-if choice == "Logout":
-    st.session_state.logged_in = False
-    st.rerun()
 
-# Dashboard
+st.markdown("""
+<style>
+[data-testid="stContainer"]{
+    border: 5px solid white;
+    border-radius: 8px;
+    padding: 15px;
+}
+[data-testid="metric-container"]{
+    text-align: center;
+}
+.stApp {
+    background: linear-gradient(
+        rgba(0,0,0,0.15),
+        rgba(0,0,0,0.15)
+    ),
+    url("https://images.unsplash.com/photo-1526256262350-7da7584cf5eb");
+    background-size: cover;
+    background-attachment: fixed;
+}
+[data-testid="stSidebar"] {
+    background: rgba(200,220,240,0.75);
+    backdrop-filter: blur(8px);
+}
+</style>
+""", unsafe_allow_html=True)
+
+# Dashboard view
 if choice == "Dashboard":
+
     st.header("📊 Dashboard")
+
     patients = fetch_patients()
     doctors = fetch_doctors()
     appointments = fetch_appointments()
 
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Patients", len(patients))
-    col2.metric("Doctors", len(doctors))
-    col3.metric("Appointments", len(appointments))
+    with st.container(border=True):
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("Patients", len(patients),"+100%")
+        col2.metric("Doctors", len(doctors),"+100%")
+        col3.metric("Appointments", len(appointments),"+100%")
+        col4.metric("Today", date.today().strftime("%d-%m-%Y"),date.today().strftime("%B"))
 
     st.subheader("Recent Appointments")
     st.dataframe(appointments)
 
-# patients records..
+    st.markdown("---")
+
+    st.subheader("👨‍⚕ Doctor Profile")
+    docs = fetch("SELECT name, specialization, qualification, rating, about FROM doctors")
+
+    doctor_name = st.selectbox("Select Doctor", docs["name"])
+    doc = docs[docs["name"] == doctor_name].iloc[0]
+
+    with st.container(border=True):
+        st.markdown(f"""
+        **👨‍⚕ {doc.name}**  
+        🧠 {doc.specialization}  
+        🎓 {doc.qualification}  
+        ⭐ {doc.rating}/5.0  
+        📝 {doc.about}
+        """)
+
+    st.markdown("---")
+
+    st.subheader("💰 Doctor Earnings")
+    earnings = fetch("""
+        SELECT d.name, d.fees,
+               COUNT(a.id) visits,
+               COUNT(a.id)*d.fees earnings
+        FROM doctors d
+        LEFT JOIN appointments a ON a.doctor_id=d.id
+        GROUP BY d.id
+    """)
+    st.dataframe(earnings)
+
+    st.markdown("---")
+
+    st.subheader("📍 Clinic Location")
+    st.components.v1.html(
+    """
+    <iframe
+        src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d3770.0877133263957!2d72.8843002!3d19.1038076!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3be7c86df9ccf153%3A0x17c26c0037219f65!2sParamount%20General%20Hospital%20%26%20ICCU!5e0!3m2!1sen!2sin!4v1765694395108!5m2!1sen!2sin"
+        width="100%"
+        height="450"
+        style="border:0;"
+        allowfullscreen=""
+        loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade">
+    </iframe>
+    """,
+    height=500
+    )
+
+
+
+# Adding of patients
 if choice == "Add Patient":
+
     st.header("➕ Add Patient")
 
     name = st.text_input("Name")
@@ -150,144 +185,182 @@ if choice == "Add Patient":
 
     if st.button("Save"):
         insert_patient(name, age, gender, phone)
-        st.success("Patient added!")
+        st.success("Patient added successfully!")
 
-# doctor records
+# Adding of doctor's
 if choice == "Add Doctor":
+
     st.header("➕ Add Doctor")
 
-    name = st.selectbox("Select Doctor's",["Dr.python","Dr.Sohel","Dr.Sajid","Dr.Salunkhe","Dr.Moinuddin"])
-    specialization = st.selectbox("Select Specialization",["coderrologist","Neurologist","ENT","Cardiologist","Gastologist"])
+    name = st.selectbox("Select Doctor",["Select","Dr.Python","Dr.Sohel","Dr.Sajid","Dr.Salunkhe","Dr.Moinuddin"])
+    
+    specialization = st.selectbox(
+        "Specialization",
+        ["Select","Coderologist", "Neurologist", "ENT", "Cardiologist", "Gastrologist"]
+    )
 
     if st.button("Save"):
         insert_doctor(name, specialization)
-        st.success("Doctor added!")
+        st.success("Doctor added successfully!")
 
-# Book Appointment
+###
+# Adding Prescriptions
+if choice == "Add Prescription":
+
+    st.header("💊 Add Prescription")
+
+    appointments = fetch_appointments()
+    
+    if len(appointments) == 0:
+        st.warning("No appointments found!")
+    else:
+        # Select appointment
+        appt = st.selectbox(
+            "Select Appointment",
+            appointments.apply(lambda x: f"{x['id']} - {x['patient']} with {x['doctor']} on {x['date']}", axis=1)
+        )
+        
+        appt_id = int(appt.split(" - ")[0])  
+
+        medicines = st.text_area("Medicines")
+        advice = st.text_area("Advice")
+
+        if st.button("Save Prescription"):
+            execute(
+                "INSERT INTO prescriptions (appointment_id, medicines, advice) VALUES (%s,%s,%s)",
+                (appt_id, medicines, advice)
+            )
+            st.success("Prescription saved successfully!")
+
+    # Show all prescriptions
+    st.subheader("📄 All Prescriptions")
+    prescriptions = fetch("SELECT id, appointment_id, medicines, advice FROM prescriptions")
+    st.dataframe(prescriptions)
+###
+
+# appointment box
 if choice == "Book Appointment":
+
     st.header("📅 Book Appointment")
 
     patients = fetch_patients()
     doctors = fetch_doctors()
 
-    patient_sel = st.selectbox("Select Patient", patients['name'])
-    doctor_sel = st.selectbox("Select Doctor", doctors['name'])
+    p = st.selectbox("Patient", patients["name"])
+    d = st.selectbox("Doctor", doctors["name"])
 
-    patient_id = int(patients[patients['name'] == patient_sel]['id'].values[0])
-    doctor_id = int(doctors[doctors['name'] == doctor_sel]['id'].values[0])
+    pid = patients[patients.name == p].id.values[0]
+    did = doctors[doctors.name == d].id.values[0]
 
-    date_ = st.date_input("Date", date.today())
-    time_ = st.time_input("Time", datetime.now().time())
+    ap_date = st.date_input("Date", date.today())
+    ap_time = st.time_input("Time", datetime.now().time())
     note = st.text_area("Note")
 
     if st.button("Book"):
-        insert_appointment(patient_id, doctor_id, date_, time_, note)
+        insert_appointment(pid, did, ap_date, ap_time, note)
         st.success("Appointment booked!")
 
-# View details
+# Show all appointments
 if choice == "View Appointments":
     st.header("📄 All Appointments")
     st.dataframe(fetch_appointments())
 
-# Update and delete
-if choice == "Edit/Delete Records":
-    st.header("✏ Edit & 🗑 Delete Records")
-
-    tab = st.selectbox("Select Table", ["Patients", "Doctors", "Appointments"])
-
-    if tab == "Patients":
-        df = fetch_patients()
-        st.dataframe(df)
-
-        id_ = st.number_input("Enter Patient ID to Edit/Delete", 1)
-        if id_ in df["id"].values:
-            name = st.text_input("Name", df[df.id == id_].iloc[0].name)
-            age = st.number_input("Age", 1, 120, df[df.id == id_].iloc[0].age)
-            gender = st.selectbox("Gender", ["Male", "Female", "Other"], 
-                                  index=["Male","Female","Other"].index(df[df.id == id_].iloc[0].gender))
-            phone = st.text_input("Phone", df[df.id == id_].iloc[0].phone)
-
-            if st.button("Update Patient"):
-                update_patient(id_, name, age, gender, phone)
-                st.success("Updated!")
-                st.rerun()
-
-            if st.button("Delete Patient"):
-                delete_record("patients", id_)
-                st.error("Deleted!")
-                st.rerun()
-
-    if tab == "Doctors":
-        df = fetch_doctors()
-        st.dataframe(df)
-
-        id_ = st.number_input("Enter Doctor ID to Edit/Delete", 1)
-        if id_ in df["id"].values:
-            name = st.text_input("Name", df[df.id == id_].iloc[0].name)
-            specialization = st.text_input("Specialization", df[df.id == id_].iloc[0].specialization)
-
-            if st.button("Update Doctor"):
-                update_doctor(id_, name, specialization)
-                st.success("Updated!")
-                st.rerun()
-
-            if st.button("Delete Doctor"):
-                delete_record("doctors", id_)
-                st.error("Deleted!")
-                st.rerun()
-
-    if tab == "Appointments":
-        df = fetch_appointments()
-        st.dataframe(df)
-
-        id_ = st.number_input("Enter Appointment ID to Edit/Delete", 1)
-        if id_ in df["id"].values:
-            patients = fetch_patients()
-            doctors = fetch_doctors()
-
-            patient_sel = st.selectbox("Patient", patients['name'])
-            doctor_sel = st.selectbox("Doctor", doctors['name'])
-
-            patient_id = int(patients[patients['name'] == patient_sel].id.values[0])
-            doctor_id = int(doctors[doctors['name'] == doctor_sel].id.values[0])
-
-            date_edit = st.date_input("Date")
-            time_edit = st.time_input("Time")
-            note = st.text_area("Note")
-
-            if st.button("Update Appointment"):
-                update_appointment(id_, patient_id, doctor_id, date_edit, time_edit, note)
-                st.success("Updated!")
-                st.rerun()
-
-            if st.button("Delete Appointment"):
-                delete_record("appointments", id_)
-                st.error("Deleted!")
-                st.rerun()
-
-# ---------------- EXPORT ALL IN ONE EXCEL ----------------
+# Export to excel
 if choice == "Export to Excel":
-    st.header("📤 Export Complete Database")
+    st.header("📤 Export Database")
 
     patients = fetch_patients()
     doctors = fetch_doctors()
     appointments = fetch_appointments()
+    prescriptions = fetch("SELECT id, appointment_id, medicines, advice FROM prescriptions")
+    
+    # Fetch earnings
+    earnings = fetch("""
+        SELECT d.name AS doctor_name, d.fees,
+               COUNT(a.id) AS visits,
+               COUNT(a.id)*d.fees AS earnings
+        FROM doctors d
+        LEFT JOIN appointments a ON a.doctor_id = d.id
+        GROUP BY d.id, d.name, d.fees
+    """)
 
     def create_excel():
-        output = BytesIO()
-        writer = pd.ExcelWriter(output, engine='xlsxwriter')
-        patients.to_excel(writer, sheet_name='Patients', index=False)
-        doctors.to_excel(writer, sheet_name='Doctors', index=False)
-        appointments.to_excel(writer, sheet_name='Appointments', index=False)
-        writer.close()
-        return output.getvalue()
+        out = BytesIO()
+        with pd.ExcelWriter(out, engine="xlsxwriter") as writer:
+            patients.to_excel(writer, "Patients", index=False)
+            doctors.to_excel(writer, "Doctors", index=False)
+            appointments.to_excel(writer, "Appointments", index=False)
+            prescriptions.to_excel(writer, "Prescriptions", index=False)
+            earnings.to_excel(writer, "Earnings", index=False)  
+        return out.getvalue()
 
     st.download_button(
-        label="📥 Download Full Database (Excel)",
-        data=create_excel(),
-        file_name="clinic_database.xlsx",
+        "📥 Download Excel",
+        create_excel(),
+        "clinic_database.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
+
+# Footer
+st.markdown("---")
+st.success("Thanks for Visiting, Visit again 🙏")
+
+# Background
+st.markdown(
+    """
+    <style>
+    .stApp {
+        background: linear-gradient(
+            rgba(0,0,0,0.15),   
+            rgba(0,0,0,0.15)
+        ), 
+        url("https://images.unsplash.com/photo-1526256262350-7da7584cf5eb");
+        background-size: cover;
+        background-attachment: fixed;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
+
+# Sidebar Background
+st.markdown(
+    """
+    <style>
+
+    [data-testid="stSidebar"] {
+        background: rgba(200,220,240,0.75);  
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border-right: 1px solid rgba(255,255,255,0.2);
+    }
+
+    [data-testid="stSidebar"] * {
+        color: #003049 !important; 
+        font-weight: 400;
+    }
+
+    .stSelectbox > div > div {
+        background-color: rgba(255,255,255,0.9) ;
+        border-radius: 50px;
+        color: #003049 !important;
+        border: 1px solid rgba(0,0,0,0.1);
+    }
+
+    .stSelectbox > div > div:hover {
+        background-color: rgba(235,245,255,1) ;
+ 
+    }
+
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
 
 
 
