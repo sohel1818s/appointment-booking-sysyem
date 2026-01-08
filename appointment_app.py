@@ -28,7 +28,6 @@ def execute(query, params=None):
     conn.commit()
     conn.close()
 
-# sql operations
 def insert_patient(name, age, gender, phone):
     execute(
         "INSERT INTO patients (name, age, gender, phone) VALUES (%s,%s,%s,%s)",
@@ -36,15 +35,40 @@ def insert_patient(name, age, gender, phone):
     )
 
 def insert_doctor(name, specialization):
-    execute(
+    conn = get_connection()
+    cur = conn.cursor()
+
+# check existing doctor
+    cur.execute(
+        "SELECT id FROM doctors WHERE name=%s AND specialization=%s",
+        (name, specialization)
+    )
+    row = cur.fetchone()
+
+    if row:
+        conn.close()
+        return row[0]   
+# insert new doctor
+    cur.execute(
         "INSERT INTO doctors (name, specialization) VALUES (%s,%s)",
         (name, specialization)
     )
+    conn.commit()
+    doctor_id = cur.lastrowid
+    conn.close()
+    return doctor_id
+
 
 def insert_appointment(pid, did, d, t, note):
+    d = d.strftime("%Y-%m-%d")
+    t = t.strftime("%H:%M:%S")
+
+    if note is None:
+        note = ""
+
     execute(
         "INSERT INTO appointments (patient_id, doctor_id, date, time, note) VALUES (%s,%s,%s,%s,%s)",
-        (pid, did, d, t, note)
+        (int(pid), int(did), d, t, note)
     )
 
 def fetch_patients():
@@ -62,7 +86,11 @@ def fetch_appointments():
         ORDER BY a.date DESC, a.time DESC
     """)
 
-# page top configuration
+
+
+
+
+# page top configuration()
 st.set_page_config("Clinic Appointment System", "🏥", layout="wide")
 st.title("🏥 Clinic Appointment System")
 
@@ -199,9 +227,14 @@ if choice == "Add Doctor":
         ["Select","Coderologist", "Neurologist", "ENT", "Cardiologist", "Gastrologist"]
     )
 
-    if st.button("Save"):
+if st.button("Save"):
+
+    if name == "Select" or specialization == "Select":
+        st.warning("Please select a valid Doctor name and Specialization")
+    else:
         insert_doctor(name, specialization)
         st.success("Doctor added successfully!")
+
 
 ###
 # Adding Prescriptions
@@ -272,17 +305,25 @@ if choice == "Export to Excel":
     patients = fetch_patients()
     doctors = fetch_doctors()
     appointments = fetch_appointments()
-    prescriptions = fetch("SELECT id, appointment_id, medicines, advice FROM prescriptions")
-    
+    prescriptions = fetch(
+        "SELECT id, appointment_id, medicines, advice FROM prescriptions"
+    )
+
     # Fetch earnings
     earnings = fetch("""
-        SELECT d.name AS doctor_name, d.fees,
-               COUNT(a.id) AS visits,
-               COUNT(a.id)*d.fees AS earnings
+        SELECT 
+            d.id,
+            d.name AS doctor_name,
+            d.fees,
+            COUNT(a.id) AS visits,
+            COALESCE(COUNT(a.id),0) * d.fees AS earnings
         FROM doctors d
-        LEFT JOIN appointments a ON a.doctor_id = d.id
+        LEFT JOIN appointments a 
+            ON a.doctor_id = d.id
         GROUP BY d.id, d.name, d.fees
     """)
+
+
 
     def create_excel():
         out = BytesIO()
