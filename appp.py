@@ -371,7 +371,8 @@ if choice == "Export to Excel":
 
     def create_excel():
         out = BytesIO()
-        with pd.ExcelWriter(out, engine="xlsxwriter") as writer:
+        with pd.ExcelWriter(out, engine="openpyxl") as writer:
+
             patients.to_excel(writer, "Patients", index=False)
             doctors.to_excel(writer, "Doctors", index=False)
             appointments.to_excel(writer, "Appointments", index=False)
@@ -441,3 +442,4 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
